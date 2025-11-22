@@ -42,7 +42,7 @@ uploaded = st.file_uploader("อัปโหลดภาพเอกสาร", 
 if uploaded:
 
     # โหลดโมเดล
-    model = YOLO("best_finetune.pt")
+    model = YOLO("modelv2.pt")
 
     # โหลดภาพจาก upload
     file_bytes = np.frombuffer(uploaded.read(), np.uint8)
