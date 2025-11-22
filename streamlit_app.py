@@ -142,6 +142,4 @@ if uploaded:
                 mime="application/pdf"
             )
             
-else :
-    st.error("❌ โปรดลองอีกครั้ง")
     
