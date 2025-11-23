@@ -160,8 +160,8 @@ if uploaded:
         cropped = enhance_final_preserve_color(cropped)
         
         if rotated_for_this_doc:
-        image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        H, W = image.shape[:2]
+            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            H, W = image.shape[:2]
 
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
