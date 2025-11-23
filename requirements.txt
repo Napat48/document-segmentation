@@ -1,9 +1,10 @@
 streamlit
 ultralytics
+numpy==1.26.4
 opencv-python-headless==4.8.1.78
-numpy
 img2pdf
 Pillow
+
 
 
 
