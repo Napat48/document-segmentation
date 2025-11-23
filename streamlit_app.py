@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import streamlit as st
 import cv2
 import numpy as np
@@ -22,17 +21,19 @@ def remove_shadow_preserve_color(img):
     final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
     return final
 
+
 def safe_sharpen(img):
     kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
     return cv2.filter2D(img, -1, kernel)
+
 
 def enhance_final_preserve_color(img):
     img = remove_shadow_preserve_color(img)
     img = safe_sharpen(img)
     return img
 
-# start streamlit
 
+# start streamlit
 st.title("📄 Multiple Document Scanner")
 st.write("สแกนเอกสารหลายแผ่นได้อย่างรวดเร็วและแม่นยำ — เสร็จในคลิกเดียว")
 
@@ -72,8 +73,18 @@ if uploaded:
         cnts, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours.extend(cnts)
 
-    # เรียงจากพื้นที่มากสุด เลือก 2 ใบ
+    # ---- กรองเอกสารที่เล็กเกินไป ----
+    min_area = 50000  # ปรับตามต้องการ
+    contours = [c for c in contours if cv2.contourArea(c) > min_area]
+
+    if len(contours) == 0:
+        st.error("❌ ไม่พบเอกสารในภาพ")
+        st.stop()
+    # -------------------------------
+
+    # เลือก 2 ใบใหญ่สุด
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
+
 
     def order_points(pts):
         s = pts.sum(axis=1)
@@ -85,11 +96,13 @@ if uploaded:
             pts[np.argmax(diff)]   # BL
         ], dtype="float32")
 
+
     A4_w, A4_h = 2480, 3508
     trim_border = 50
 
     output_images = []
     show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
+
     for i, c in enumerate(contours):
 
         peri = cv2.arcLength(c, True)
@@ -111,10 +124,14 @@ if uploaded:
             trim_border:A4_w-trim_border
         ]
         cropped = enhance_final_preserve_color(cropped)
+
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
-            st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
-            caption=f"Document {i+1}", use_column_width=True)
+            st.image(
+                cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
+                caption=f"Document {i+1}",
+                use_column_width=True
+            )
 
         output_images.append(cropped)
 
@@ -130,13 +147,11 @@ if uploaded:
 
         tmp_pdf.write(img2pdf.convert(image_paths))
 
-        # ลบไฟล์ชั่วคราว
         for p in image_paths:
             os.remove(p)
 
         st.success("✔ สร้าง PDF สำเร็จ!")
 
-        # ปุ่มดาวน์โหลด
         with open(tmp_pdf.name, "rb") as f:
             st.download_button(
                 label="📥 ดาวน์โหลด PDF",
@@ -144,5 +159,3 @@ if uploaded:
                 file_name="scanned_documents.pdf",
                 mime="application/pdf"
             )
-            
-    
