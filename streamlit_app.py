@@ -7,19 +7,28 @@ import tempfile
 import os
 
 
+# def remove_shadow_preserve_color(img):
+#     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+#     h, s, v = cv2.split(hsv)
+
+#     bg = cv2.medianBlur(v, 61)
+#     diff = cv2.absdiff(v, bg)
+#     shadow = cv2.normalize(255 - diff, None, 0, 255, cv2.NORM_MINMAX)
+
+#     v2 = cv2.addWeighted(v, 0.85, shadow, 0.15, 0)
+
+#     final_hsv = cv2.merge([h, s, v2])
+#     final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+#     return final
 def remove_shadow_preserve_color(img):
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(hsv)
-
-    bg = cv2.medianBlur(v, 61)
-    diff = cv2.absdiff(v, bg)
-    shadow = cv2.normalize(255 - diff, None, 0, 255, cv2.NORM_MINMAX)
-
-    v2 = cv2.addWeighted(v, 0.85, shadow, 0.15, 0)
-
-    final_hsv = cv2.merge([h, s, v2])
-    final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-    return final
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    result = cv2.adaptiveThreshold(
+        gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        51, 10
+    )
+    return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
 
 def safe_sharpen(img):
