@@ -30,7 +30,6 @@ def remove_shadow_white_color(img):
     )
     return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
-
 def safe_sharpen(img):
     kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
     return cv2.filter2D(img, -1, kernel)
@@ -51,7 +50,6 @@ def enhance_final_preserve_color(img):
     img = safe_sharpen(img)
     return img
 
-
 # start streamlit
 st.title("📄 Multiple Document Scanner")
 st.write("สแกนเอกสารหลายแผ่นได้อย่างรวดเร็วและแม่นยำ — เสร็จในคลิกเดียว")
@@ -60,13 +58,21 @@ uploaded = st.file_uploader("อัปโหลดภาพเอกสาร", 
 
 if uploaded:
 
-    # โหลดโมเดล
     model = YOLO("modelv2.pt")
 
-    # โหลดภาพจาก upload
     file_bytes = np.frombuffer(uploaded.read(), np.uint8)
     image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
     H, W = image.shape[:2]
+
+    # -------------------------
+    # 🔥 หมุนภาพถ้าเป็นแนวนอน
+    # -------------------------
+    rotated = False
+    if W > H:
+        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        rotated = True
+        H, W = image.shape[:2]
+        st.write("📌 หมุนภาพแนวนอนโดยอัตโนมัติ")
 
     # Predict segmentation
     res = model.predict(image, conf=0.5)[0]
@@ -75,7 +81,6 @@ if uploaded:
         st.error("❌ ไม่พบเอกสารในภาพ")
         st.stop()
 
-    # Upsample masks
     masks = res.masks.data.cpu().numpy()
     upsampled_masks = []
 
@@ -86,14 +91,12 @@ if uploaded:
         m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((5,5), np.uint8))
         upsampled_masks.append(m)
 
-    # หา contour
     contours = []
     for m in upsampled_masks:
         cnts, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours.extend(cnts)
 
-    # กรองเอกสารที่เล็กเกินไป
-    min_area = 50000  
+    min_area = 50000
     contours = [c for c in contours if cv2.contourArea(c) > min_area]
 
     if len(contours) == 0:
@@ -102,17 +105,15 @@ if uploaded:
 
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-    
     def order_points(pts):
         s = pts.sum(axis=1)
         diff = np.diff(pts, axis=1)
         return np.array([
-            pts[np.argmin(s)],     # TL
-            pts[np.argmin(diff)],  # TR
-            pts[np.argmax(s)],     # BR
-            pts[np.argmax(diff)]   # BL
+            pts[np.argmin(s)],
+            pts[np.argmin(diff)],
+            pts[np.argmax(s)],
+            pts[np.argmax(diff)]
         ], dtype="float32")
-
 
     A4_w, A4_h = 2480, 3508
     trim_border = 50
@@ -124,23 +125,33 @@ if uploaded:
 
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-        
+
         if len(approx) != 4:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
 
         src = order_points(approx.reshape(4,2).astype(np.float32))
-        dst = np.array([[0,0],[A4_w-1,0],[A4_w-1,A4_h-1],[0,A4_h-1]], np.float32)
+        dst = np.array([
+            [0,0],
+            [A4_w-1,0],
+            [A4_w-1,A4_h-1],
+            [0,A4_h-1]
+        ], np.float32)
 
         H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
         warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
 
-        # enhance แบบ preserve color
         cropped = warped[
             trim_border:A4_h-trim_border,
             trim_border:A4_w-trim_border
         ]
         cropped = enhance_final_preserve_color(cropped)
+
+        # -------------------------
+        # 🔥 หมุนกลับถ้าต้นฉบับเป็นแนวนอน
+        # -------------------------
+        if rotated:
+            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
@@ -152,7 +163,6 @@ if uploaded:
 
         output_images.append(cropped)
 
-    # สร้าง PDF ใน temp
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
 
         image_paths = []
