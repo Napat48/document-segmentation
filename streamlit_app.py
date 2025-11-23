@@ -40,7 +40,7 @@ def auto_shadow_removal(img):
 
     S_avg = np.mean(s)
 
-    if S_avg < 25:
+    if S_std < 18 and V_mean > 150:
         return remove_shadow_white_color(img)
     else:
         return remove_shadow_preserve_color(img)
