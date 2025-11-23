@@ -6,21 +6,21 @@ import img2pdf
 import tempfile
 import os
 
-
-# def remove_shadow_preserve_color(img):
-#     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-#     h, s, v = cv2.split(hsv)
-
-#     bg = cv2.medianBlur(v, 61)
-#     diff = cv2.absdiff(v, bg)
-#     shadow = cv2.normalize(255 - diff, None, 0, 255, cv2.NORM_MINMAX)
-
-#     v2 = cv2.addWeighted(v, 0.85, shadow, 0.15, 0)
-
-#     final_hsv = cv2.merge([h, s, v2])
-#     final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-#     return final
 def remove_shadow_preserve_color(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    bg = cv2.medianBlur(v, 61)
+    diff = cv2.absdiff(v, bg)
+    shadow = cv2.normalize(255 - diff, None, 0, 255, cv2.NORM_MINMAX)
+
+    v2 = cv2.addWeighted(v, 0.85, shadow, 0.15, 0)
+
+    final_hsv = cv2.merge([h, s, v2])
+    final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return final
+
+def remove_shadow_white_color(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     result = cv2.adaptiveThreshold(
         gray, 255,
@@ -35,11 +35,27 @@ def safe_sharpen(img):
     kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
     return cv2.filter2D(img, -1, kernel)
 
+def auto_shadow_removal(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    S_avg = np.mean(s)
+
+    
+    if S_avg < 25:
+        
+        return remove_shadow_white_color(img)
+    else:
+        
+        return remove_shadow_preserve_color(img)
+
 
 def enhance_final_preserve_color(img):
-    img = remove_shadow_preserve_color(img)
+    img = auto_shadow_removal(img)
     img = safe_sharpen(img)
     return img
+
+
 
 
 # start streamlit
