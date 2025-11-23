@@ -11,7 +11,7 @@ def remove_shadow_preserve_color(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
 
-    bg = cv2.medianBlur(v, 31)
+    bg = cv2.medianBlur(v, 61)
     diff = cv2.absdiff(v, bg)
     shadow = cv2.normalize(255 - diff, None, 0, 255, cv2.NORM_MINMAX)
 
