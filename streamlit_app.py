@@ -5,6 +5,17 @@ from ultralytics import YOLO
 import img2pdf
 import tempfile
 import os
+def rotate_contour_points(pts, W, H):
+    R = np.array([[0, 1],
+                  [-1, 0]], dtype=np.float32)  
+
+    rotated = []
+    for p in pts:
+        xy = p - np.array([0, 0], dtype=np.float32)
+        rot = R @ xy
+        rot = rot + np.array([W, 0], dtype=np.float32)
+        rotated.append(rot)
+    return np.array(rotated, dtype=np.float32)
 
 def remove_shadow_preserve_color(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
