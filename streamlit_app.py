@@ -83,7 +83,7 @@ if uploaded:
     # -------------------------------
 
     # เลือก 2 ใบใหญ่สุด
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
 
     def order_points(pts):
