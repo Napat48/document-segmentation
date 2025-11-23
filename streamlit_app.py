@@ -119,28 +119,6 @@ if uploaded:
         if len(approx) != 4:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
-        x, y, w_box, h_box = cv2.boundingRect(approx)
-        rotated_for_this_doc = False
-
-        if w_box > h_box:
-            rotated_for_this_doc = True
-            st.write(f"📌 เอกสารใบที่ {i+1}: landscape → rotate")
-    
-            # 1.1 หมุนภาพใหญ่สำหรับ process ใบนี้
-            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-    
-            # 1.2 หมุนจุดของ approx ด้วย
-            H0, W0 = H, W  # เก็บค่าก่อนหมุน
-            rotated_pts = []
-            for p in approx.reshape(-1, 2):
-                px, py = p
-                newp = np.array([py, W0 - px], dtype=np.float32)
-                rotated_pts.append(newp)
-    
-            approx = np.array(rotated_pts).reshape(-1, 1, 2)
-
-        # 1.3 update H,W
-        H, W = image.shape[:2]
 
         src = order_points(approx.reshape(4,2).astype(np.float32))
         dst = np.array([
@@ -158,10 +136,6 @@ if uploaded:
             trim_border:A4_w-trim_border
         ]
         cropped = enhance_final_preserve_color(cropped)
-        
-        if rotated_for_this_doc:
-            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            H, W = image.shape[:2]
 
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
