@@ -89,7 +89,7 @@ if uploaded:
     trim_border = 50
 
     output_images = []
-
+    show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
     for i, c in enumerate(contours):
 
         peri = cv2.arcLength(c, True)
@@ -111,9 +111,10 @@ if uploaded:
             trim_border:A4_w-trim_border
         ]
         cropped = enhance_final_preserve_color(cropped)
-        st.subheader(f"ผลลัพธ์หน้า {i+1}")
-        st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
-        caption=f"Document {i+1}", use_column_width=True)
+        if show_preview:
+            st.subheader(f"ผลลัพธ์หน้า {i+1}")
+            st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
+            caption=f"Document {i+1}", use_column_width=True)
 
         output_images.append(cropped)
 
