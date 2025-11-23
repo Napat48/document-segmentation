@@ -38,7 +38,8 @@ def auto_shadow_removal(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
 
-    S_avg = np.mean(s)
+    S_std = np.std(s)
+    V_mean = np.mean(v)
 
     if S_std < 18 and V_mean > 150:
         return remove_shadow_white_color(img)
