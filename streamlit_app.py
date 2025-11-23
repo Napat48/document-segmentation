@@ -136,9 +136,9 @@ if uploaded:
             # update W,H หลังหมุน
             H, W = image.shape[:2]
         
-                if len(approx) != 4:
-                    rect = cv2.minAreaRect(c)
-                    approx = cv2.boxPoints(rect)
+        if len(approx) != 4:
+            rect = cv2.minAreaRect(c)
+            approx = cv2.boxPoints(rect)
 
         # if w_box > h_box:  # เอกสารแนวนอน → หมุน
         #     st.write("📌 หมุนเอกสารแนวนอนโดยอัตโนมัติ")
