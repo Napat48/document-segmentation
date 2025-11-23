@@ -134,19 +134,19 @@ if uploaded:
             approx = cv2.boxPoints(rect)
         x, y, w_box, h_box = cv2.boundingRect(approx)
 
-        if w_box > h_box:  # เอกสารแนวนอน → หมุน
-            st.write("📌 หมุนเอกสารแนวนอนโดยอัตโนมัติ")
+        # if w_box > h_box:  # เอกสารแนวนอน → หมุน
+        #     st.write("📌 หมุนเอกสารแนวนอนโดยอัตโนมัติ")
         
-            # rotate
-            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        #     # rotate
+        #     image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
         
-            # rotate point
-            approx = np.array(
-                [rotate_point(p[0], W, H) for p in approx]
-            ).reshape(-1,1,2)
+        #     # rotate point
+        #     approx = np.array(
+        #         [rotate_point(p[0], W, H) for p in approx]
+        #     ).reshape(-1,1,2)
         
-            # update h w
-            H, W = image.shape[:2]
+        #     # update h w
+        #     H, W = image.shape[:2]
 
         src = order_points(approx.reshape(4,2).astype(np.float32))
         dst = np.array([[0,0],[A4_w-1,0],[A4_w-1,A4_h-1],[0,A4_h-1]], np.float32)
