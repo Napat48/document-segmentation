@@ -6,18 +6,6 @@ import img2pdf
 import tempfile
 import os
 
-def rotate_contour_points(pts, W, H):
-    R = np.array([[0, 1],
-                  [-1, 0]], dtype=np.float32)  
-
-    rotated = []
-    for p in pts:
-        xy = p - np.array([0, 0], dtype=np.float32)
-        rot = R @ xy
-        rot = rot + np.array([W, 0], dtype=np.float32)
-        rotated.append(rot)
-    return np.array(rotated, dtype=np.float32)
-
 def remove_shadow_preserve_color(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
@@ -136,35 +124,10 @@ if uploaded:
 
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-        x, y, w_box, h_box = cv2.boundingRect(approx)
-
-        if w_box > h_box:
-            # หมุนภาพ
-            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-        
-            # หมุนจุด contour
-            approx = rotate_contour_points(approx.reshape(-1,2), W, H).reshape(-1,1,2)
-        
-            # update W,H หลังหมุน
-            H, W = image.shape[:2]
         
         if len(approx) != 4:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
-
-        # if w_box > h_box:  # เอกสารแนวนอน → หมุน
-        #     st.write("📌 หมุนเอกสารแนวนอนโดยอัตโนมัติ")
-        
-        #     # rotate
-        #     image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-        
-        #     # rotate point
-        #     approx = np.array(
-        #         [rotate_point(p[0], W, H) for p in approx]
-        #     ).reshape(-1,1,2)
-        
-        #     # update h w
-        #     H, W = image.shape[:2]
 
         src = order_points(approx.reshape(4,2).astype(np.float32))
         dst = np.array([[0,0],[A4_w-1,0],[A4_w-1,A4_h-1],[0,A4_h-1]], np.float32)
