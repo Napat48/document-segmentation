@@ -73,16 +73,14 @@ if uploaded:
         cnts, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours.extend(cnts)
 
-    # ---- กรองเอกสารที่เล็กเกินไป ----
-    min_area = 50000  # ปรับตามต้องการ
+    # กรองเอกสารที่เล็กเกินไป
+    min_area = 50000  
     contours = [c for c in contours if cv2.contourArea(c) > min_area]
 
     if len(contours) == 0:
         st.error("❌ ไม่พบเอกสารในภาพ")
         st.stop()
-    # -------------------------------
 
-    # เลือก 2 ใบใหญ่สุด
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
 
