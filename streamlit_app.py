@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import img2pdf
-from PIL import Image
 import tempfile
 import os
 
