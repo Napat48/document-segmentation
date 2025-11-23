@@ -41,21 +41,15 @@ def auto_shadow_removal(img):
 
     S_avg = np.mean(s)
 
-    
     if S_avg < 25:
-        
         return remove_shadow_white_color(img)
     else:
-        
         return remove_shadow_preserve_color(img)
-
 
 def enhance_final_preserve_color(img):
     img = auto_shadow_removal(img)
     img = safe_sharpen(img)
     return img
-
-
 
 
 # start streamlit
