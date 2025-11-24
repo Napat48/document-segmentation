@@ -104,15 +104,23 @@ if uploaded:
 
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-    def order_points(pts):
+    def order_points(pts, landscape):
         s = pts.sum(axis=1)
         diff = np.diff(pts, axis=1)
-        return np.array([
-            pts[np.argmin(s)],
-            pts[np.argmin(diff)],
-            pts[np.argmax(s)],
-            pts[np.argmax(diff)]
-        ], dtype="float32")
+        if not landscape :
+            return np.array([
+                pts[np.argmin(s)],
+                pts[np.argmin(diff)],
+                pts[np.argmax(s)],
+                pts[np.argmax(diff)]
+            ], dtype="float32")
+        else :
+            return np.array([
+                pts[np.argmax(diff)],
+                pts[np.argmin(s)],
+                pts[np.argmin(diff)],
+                 pts[np.argmax(s)]
+            ], dtype="float32")
 
     A4_w, A4_h = 2480, 3508
     trim_border = 50
@@ -128,8 +136,11 @@ if uploaded:
         if len(approx) != 4:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
+            
+        h_mask, w_mask = upsampled_masks[i].shape
+        landscape = (w_mask > h_mask)
 
-        src = order_points(approx.reshape(4,2).astype(np.float32))
+        src = order_points(approx.reshape(4,2).astype(np.float32), landscape)
         dst = np.array([
             [0,0],
             [A4_w-1,0],
