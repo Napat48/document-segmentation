@@ -105,18 +105,43 @@ if uploaded:
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     def order_points(pts):
-        # sort by x coordinate
-        x_sorted = pts[np.argsort(pts[:, 0]), :]
+        pts = np.array(pts, dtype=np.float32)
+
+        # วัดความกว้างสูง
+        x_coords = pts[:,0]
+        y_coords = pts[:,1]
     
-        left = x_sorted[:2]     
-        right = x_sorted[2:]   
-        left = left[np.argsort(left[:, 1])]
-        tl, bl = left
+        w = x_coords.max() - x_coords.min()
+        h = y_coords.max() - y_coords.min()
     
-        right = right[np.argsort(right[:, 1])]
-        tr, br = right
+        # -------------------------
+        # CASE 1 : แนวตั้ง (Portrait)
+        # -------------------------
+        if h >= w:
+            s = pts.sum(axis=1)
+            diff = np.diff(pts, axis=1)
+            return np.array([
+                pts[np.argmin(s)],     # TL
+                pts[np.argmin(diff)],  # TR
+                pts[np.argmax(s)],     # BR
+                pts[np.argmax(diff)]   # BL
+            ], dtype="float32")
     
-        return np.array([tl, tr, br, bl], dtype="float32")
+        # -------------------------
+        # CASE 2 : แนวนอน (Landscape)
+        # -------------------------
+        else:
+            # sort by y (บน -> ล่าง)
+            sorted_by_y = pts[np.argsort(pts[:,1])]
+    
+            top = sorted_by_y[:2]      # 2 จุดบน
+            bottom = sorted_by_y[2:]   # 2 จุดล่าง
+    
+            # ในแต่ละแถว เรียงซ้ายขวาด้วย x
+            TL, TR = top[np.argsort(top[:,0])]
+            BL, BR = bottom[np.argsort(bottom[:,0])]
+    
+            return np.array([TL, TR, BR, BL], dtype=np.float32)
 
     A4_w, A4_h = 2480, 3508
     trim_border = 50
