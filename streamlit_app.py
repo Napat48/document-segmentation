@@ -40,8 +40,12 @@ def auto_shadow_removal(img):
 
     S_std = np.std(s)
     V_mean = np.mean(v)
+    
+    gray_pixels = np.sum(s < 30)   
+    total_pixels = s.size
+    gray_ratio = gray_pixels / total_pixels
 
-    if S_std < 18 and V_mean > 150:
+    if gray_ratio > 0.70 :
         return remove_shadow_white_color(img)
     else:
         return remove_shadow_preserve_color(img)
