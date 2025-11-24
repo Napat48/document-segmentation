@@ -105,22 +105,15 @@ if uploaded:
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     def order_points(pts):
-        # pts shape = (4,2)
+        s = pts.sum(axis=1)
+        diff = np.diff(pts, axis=1)
+        return np.array([
+            pts[np.argmin(s)],
+            pts[np.argmin(diff)],
+            pts[np.argmax(s)],
+            pts[np.argmax(diff)]
+        ], dtype="float32")
 
-        # 1) sort by x (ซ้ายไปขวา)
-        x_sorted = pts[np.argsort(pts[:, 0]), :]
-    
-        left = x_sorted[:2]    # ซ้ายสุด 2 จุด
-        right = x_sorted[2:]   # ขวาสุด 2 จุด
-    
-        # 2) แยกบน-ล่าง ตาม y
-        left = left[np.argsort(left[:, 1]), :]     # TL, BL
-        right = right[np.argsort(right[:, 1]), :]  # TR, BR
-    
-        tl, bl = left
-        tr, br = right
-    
-        return np.array([tl, tr, br, bl], dtype="float32")
     A4_w, A4_h = 2480, 3508
     trim_border = 50
 
