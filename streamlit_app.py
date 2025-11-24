@@ -137,8 +137,8 @@ if uploaded:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
             
-        h_mask, w_mask = upsampled_masks[i].shape
-        landscape = (w_mask > h_mask)
+        x, y, w, h = cv2.boundingRect(approx)
+l       landscape = w > h
 
         src = order_points(approx.reshape(4,2).astype(np.float32), landscape)
         dst = np.array([
