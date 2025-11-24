@@ -138,7 +138,7 @@ if uploaded:
             approx = cv2.boxPoints(rect)
             
         x, y, w, h = cv2.boundingRect(approx)
-l       landscape = w > h
+        landscape = w > h
 
         src = order_points(approx.reshape(4,2).astype(np.float32), landscape)
         dst = np.array([
