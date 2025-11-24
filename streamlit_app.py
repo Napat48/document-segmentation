@@ -138,66 +138,73 @@ if uploaded:
 
     for i, c in enumerate(contours):
 
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+    peri = cv2.arcLength(c, True)
+    approx = cv2.approxPolyDP(c, 0.02 * peri, True)
 
-        if len(approx) != 4:
-            rect = cv2.minAreaRect(c)
-            approx = cv2.boxPoints(rect)
+    if len(approx) != 4:
+        rect = cv2.minAreaRect(c)
+        approx = cv2.boxPoints(rect)
 
-        mask_i = upsampled_masks[i]
-        h_mask, w_mask = mask_i.shape
-        need_rotate = w_mask > h_mask
+    approx_pts = approx.reshape(-1,2).astype(np.float32)
 
-        if need_rotate:
-            # rotate image
-            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-    
-            # rotate mask
-            mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_CLOCKWISE)
-    
-            # rotate contour points
-            approx = rotate_points_clockwise(
-                approx.reshape(-1,2), W, H
-            ).reshape(-1,1,2)
-    
-            # update size
-            H, W = image.shape[:2]
+    # -------------------------------------
+    # 🔥 Detect document orientation
+    # -------------------------------------
+    x, y, w_box, h_box = cv2.boundingRect(approx_pts)
+    need_rotate = w_box > h_box   # แนวนอน
 
-        src = order_points(approx.reshape(4,2).astype(np.float32))
-        dst = np.array([
-            [0,0],
-            [A4_w-1,0],
-            [A4_w-1,A4_h-1],
-            [0,A4_h-1]
-        ], np.float32)
+    # -------------------------------------
+    # 🔥 Rotate ONLY the 4 corner points
+    # -------------------------------------
+    if need_rotate:
+        H_img, W_img = image.shape[:2]
 
-        H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
-        warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
+        # rotate 90° clockwise in pixel coordinates
+        # (x, y) -> (y, W - x)
+        rotated_pts = []
+        for (x, y) in approx_pts:
+            new_x = y
+            new_y = W_img - x
+            rotated_pts.append([new_x, new_y])
 
-        cropped = warped[
-            trim_border:A4_h-trim_border,
-            trim_border:A4_w-trim_border
-        ]
-        cropped = enhance_final_preserve_color(cropped)
-        
-        if need_rotate:
-            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    
-            # important → reset global image/mask
-            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            H, W = image.shape[:2]
+        approx_pts = np.array(rotated_pts, dtype=np.float32)
 
-        if show_preview:
-            st.subheader(f"ผลลัพธ์หน้า {i+1}")
-            st.image(
-                cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
-                caption=f"Document {i+1}",
-                use_column_width=True
-            )
+    # -------------------------------------
+    # 🔥 Compute Homography normally
+    # -------------------------------------
+    src = order_points(approx_pts)
 
-        output_images.append(cropped)
+    dst = np.array([
+        [0,0],
+        [A4_w-1,0],
+        [A4_w-1,A4_h-1],
+        [0,A4_h-1]
+    ], np.float32)
+
+    H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+
+    warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
+
+    cropped = warped[
+        trim_border:A4_h-trim_border,
+        trim_border:A4_w-trim_border
+    ]
+
+    cropped = enhance_final_preserve_color(cropped)
+
+    # 🔥 หมุนผลลัพธ์กลับถ้าเอกสารแนวนอน
+    if need_rotate:
+        cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    if show_preview:
+        st.subheader(f"ผลลัพธ์หน้า {i+1}")
+        st.image(
+            cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
+            caption=f"Document {i+1}",
+            use_column_width=True
+        )
+
+    output_images.append(cropped)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
 
