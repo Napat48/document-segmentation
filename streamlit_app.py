@@ -6,22 +6,6 @@ import img2pdf
 import tempfile
 import os
 
-def rotate_points_clockwise(pts, W, H):
-    # (x, y) → (y, W - x)
-    new_pts = []
-    for p in pts:
-        x, y = p
-        new_pts.append([y, W - x])
-    return np.array(new_pts, dtype=np.float32)
-
-def rotate_points_counter(pts, W, H):
-    # (x, y) → (H - y, x)
-    new_pts = []
-    for p in pts:
-        x, y = p
-        new_pts.append([H - y, x])
-    return np.array(new_pts, dtype=np.float32)
-
 def remove_shadow_preserve_color(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
@@ -137,65 +121,31 @@ if uploaded:
     show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
 
     for i, c in enumerate(contours):
-    
+
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-    
+
         if len(approx) != 4:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
-    
-        approx_pts = approx.reshape(-1,2).astype(np.float32)
-    
-        # -------------------------------------
-        # 🔥 Detect document orientation
-        # -------------------------------------
-        x, y, w_box, h_box = cv2.boundingRect(approx_pts)
-        need_rotate = w_box > h_box   # แนวนอน
-    
-        # -------------------------------------
-        # 🔥 Rotate ONLY the 4 corner points
-        # -------------------------------------
-        if need_rotate:
-            H_img, W_img = image.shape[:2]
-    
-            # rotate 90° clockwise in pixel coordinates
-            # (x, y) -> (y, W - x)
-            rotated_pts = []
-            for (x, y) in approx_pts:
-                new_x = y
-                new_y = W_img - x
-                rotated_pts.append([new_x, new_y])
-    
-            approx_pts = np.array(rotated_pts, dtype=np.float32)
-    
-        # -------------------------------------
-        # 🔥 Compute Homography normally
-        # -------------------------------------
-        src = order_points(approx_pts)
-    
+
+        src = order_points(approx.reshape(4,2).astype(np.float32))
         dst = np.array([
             [0,0],
             [A4_w-1,0],
             [A4_w-1,A4_h-1],
             [0,A4_h-1]
         ], np.float32)
-    
+
         H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
-    
         warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
-    
+
         cropped = warped[
             trim_border:A4_h-trim_border,
             trim_border:A4_w-trim_border
         ]
-    
         cropped = enhance_final_preserve_color(cropped)
-    
-        # 🔥 หมุนผลลัพธ์กลับถ้าเอกสารแนวนอน
-        if need_rotate:
-            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    
+
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
             st.image(
@@ -203,7 +153,7 @@ if uploaded:
                 caption=f"Document {i+1}",
                 use_column_width=True
             )
-    
+
         output_images.append(cropped)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
