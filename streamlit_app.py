@@ -120,62 +120,41 @@ if uploaded:
     output_images = []
     show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
 
-    for i in range(len(upsampled_masks)):
+    for i, c in enumerate(contours):
 
-        mask_i = upsampled_masks[i]
-        h_mask, w_mask = mask_i.shape
-    
-        need_rotate = w_mask > h_mask
-    
-        if need_rotate:
-            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-            mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_CLOCKWISE)
-            H, W = image.shape[:2]
-    
-        # find contour after rotation
-        cnts, _ = cv2.findContours(mask_i, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if len(cnts) == 0:
-            continue
-    
-        c2 = max(cnts, key=cv2.contourArea)
-    
-        # force 4-point rectangle ALWAYS
-        rect = cv2.minAreaRect(c2)
-        approx = cv2.boxPoints(rect).astype(np.float32)
-    
-        # homography
-        src = order_points(approx)
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+
+        if len(approx) != 4:
+            rect = cv2.minAreaRect(c)
+            approx = cv2.boxPoints(rect)
+
+        src = order_points(approx.reshape(4,2).astype(np.float32))
         dst = np.array([
             [0,0],
             [A4_w-1,0],
             [A4_w-1,A4_h-1],
             [0,A4_h-1]
         ], np.float32)
-    
+
         H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
         warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
-    
+
         cropped = warped[
             trim_border:A4_h-trim_border,
             trim_border:A4_w-trim_border
         ]
-    
         cropped = enhance_final_preserve_color(cropped)
-    
-        # rotate back
-        if need_rotate:
-            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            H, W = image.shape[:2]
-    
+
         if show_preview:
-            st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
-                     caption=f"Document {i+1}",
-                     use_column_width=True)
-    
+            st.subheader(f"ผลลัพธ์หน้า {i+1}")
+            st.image(
+                cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
+                caption=f"Document {i+1}",
+                use_column_width=True
+            )
+
         output_images.append(cropped)
-
-
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
 
