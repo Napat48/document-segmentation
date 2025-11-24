@@ -120,18 +120,14 @@ if uploaded:
     output_images = []
     show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
 
-    for i, c in enumerate(contours):
+    for i in range(len(upsampled_masks)):
 
-        # เตรียม mask ของใบนี้
+        # mask ของเอกสารใบที่ i
         mask_i = upsampled_masks[i]
-    
-        # ขนาด mask
         h_mask, w_mask = mask_i.shape
-        need_rotate = w_mask > h_mask  # แนวนอน → หมุน
     
-        # สำรองภาพก่อนหมุน
-        original_image = image.copy()
-        original_mask  = mask_i.copy()
+        # ---------- CHECK ORIENTATION ----------
+        need_rotate = w_mask > h_mask
     
         if need_rotate:
             # หมุนภาพจริง
@@ -140,57 +136,52 @@ if uploaded:
             # หมุน mask
             mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_CLOCKWISE)
     
-            # อัปเดต H,W ใหม่หลังหมุน
+            # update H, W ใหม่
             H, W = image.shape[:2]
     
-            # หา contour ใหม่บน mask หลังหมุน
-            cnts, _ = cv2.findContours(mask_i, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if len(cnts) == 0:
-                continue
-            c = max(cnts, key=cv2.contourArea)
+        # ---------- หา CONTOUR ใหม่หลังหมุน ----------
+        cnts, _ = cv2.findContours(mask_i, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if len(cnts) == 0:
+            continue
     
-        # หา approx polygon ใหม่ตามภาพปัจจุบัน (อาจถูกหมุน)
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+        # เลือก contour ใหญ่สุด
+        c2 = max(cnts, key=cv2.contourArea)
+    
+        peri = cv2.arcLength(c2, True)
+        approx = cv2.approxPolyDP(c2, 0.02 * peri, True)
+    
         if len(approx) != 4:
-            rect = cv2.minAreaRect(c)
+            rect = cv2.minAreaRect(c2)
             approx = cv2.boxPoints(rect)
-        approx = approx.reshape(4,2).astype(np.float32)
     
-        # จัดลำดับจุดใหม่
-        src = order_points(approx)
-    
-        # จุดปลายทาง A4
+        # ---------- homography ----------
+        src = order_points(approx.astype(np.float32))
         dst = np.array([
-            [0,0],
-            [A4_w-1,0],
-            [A4_w-1,A4_h-1],
-            [0,A4_h-1]
-        ], np.float32)
+            [0, 0],
+            [A4_w - 1, 0],
+            [A4_w - 1, A4_h - 1],
+            [0, A4_h - 1]
+        ], dtype=np.float32)
     
-        # Homography
         H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
         warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
     
-        # crop
+        # ---------- crop & enhance ----------
         cropped = warped[
-            trim_border:A4_h-trim_border,
-            trim_border:A4_w-trim_border
+            trim_border:A4_h - trim_border,
+            trim_border:A4_w - trim_border
         ]
-    
-        # enhance
         cropped = enhance_final_preserve_color(cropped)
     
-        # หมุนกลับถ้าใบนี้เป็นแนวนอน
+        # ---------- rotate back ----------
         if need_rotate:
             cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
     
-            # 🔥 restore ภาพหลักเพื่อทำใบถัดไป
-            image = original_image
-            mask_i = original_mask
+            # restore global image เพื่อไม่ให้เอกสารถัดไปพัง
+            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
             H, W = image.shape[:2]
     
-        # แสดงผล
+        # ---------- save ----------
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
             st.image(
