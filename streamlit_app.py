@@ -6,6 +6,22 @@ import img2pdf
 import tempfile
 import os
 
+def rotate_points_clockwise(pts, W, H):
+    # (x, y) → (y, W - x)
+    new_pts = []
+    for p in pts:
+        x, y = p
+        new_pts.append([y, W - x])
+    return np.array(new_pts, dtype=np.float32)
+
+def rotate_points_counter(pts, W, H):
+    # (x, y) → (H - y, x)
+    new_pts = []
+    for p in pts:
+        x, y = p
+        new_pts.append([H - y, x])
+    return np.array(new_pts, dtype=np.float32)
+
 def remove_shadow_preserve_color(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
@@ -129,6 +145,25 @@ if uploaded:
             rect = cv2.minAreaRect(c)
             approx = cv2.boxPoints(rect)
 
+        mask_i = upsampled_masks[i]
+        h_mask, w_mask = mask_i.shape
+        need_rotate = w_mask > h_mask
+
+        if need_rotate:
+            # rotate image
+            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    
+            # rotate mask
+            mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_CLOCKWISE)
+    
+            # rotate contour points
+            approx = rotate_points_clockwise(
+                approx.reshape(-1,2), W, H
+            ).reshape(-1,1,2)
+    
+            # update size
+            H, W = image.shape[:2]
+
         src = order_points(approx.reshape(4,2).astype(np.float32))
         dst = np.array([
             [0,0],
@@ -145,6 +180,14 @@ if uploaded:
             trim_border:A4_w-trim_border
         ]
         cropped = enhance_final_preserve_color(cropped)
+        
+        if need_rotate:
+            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    
+            # important → reset global image/mask
+            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            H, W = image.shape[:2]
 
         if show_preview:
             st.subheader(f"ผลลัพธ์หน้า {i+1}")
