@@ -122,75 +122,59 @@ if uploaded:
 
     for i in range(len(upsampled_masks)):
 
-        # mask ของเอกสารใบที่ i
         mask_i = upsampled_masks[i]
         h_mask, w_mask = mask_i.shape
     
-        # ---------- CHECK ORIENTATION ----------
         need_rotate = w_mask > h_mask
     
         if need_rotate:
-            # หมุนภาพจริง
             image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-    
-            # หมุน mask
             mask_i = cv2.rotate(mask_i, cv2.ROTATE_90_CLOCKWISE)
-    
-            # update H, W ใหม่
             H, W = image.shape[:2]
     
-        # ---------- หา CONTOUR ใหม่หลังหมุน ----------
+        # find contour after rotation
         cnts, _ = cv2.findContours(mask_i, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(cnts) == 0:
             continue
     
-        # เลือก contour ใหญ่สุด
         c2 = max(cnts, key=cv2.contourArea)
     
-        peri = cv2.arcLength(c2, True)
-        approx = cv2.approxPolyDP(c2, 0.02 * peri, True)
+        # force 4-point rectangle ALWAYS
+        rect = cv2.minAreaRect(c2)
+        approx = cv2.boxPoints(rect).astype(np.float32)
     
-        if len(approx) != 4:
-            rect = cv2.minAreaRect(c2)
-            approx = cv2.boxPoints(rect)
-    
-        # ---------- homography ----------
-        src = order_points(approx.astype(np.float32))
+        # homography
+        src = order_points(approx)
         dst = np.array([
-            [0, 0],
-            [A4_w - 1, 0],
-            [A4_w - 1, A4_h - 1],
-            [0, A4_h - 1]
-        ], dtype=np.float32)
+            [0,0],
+            [A4_w-1,0],
+            [A4_w-1,A4_h-1],
+            [0,A4_h-1]
+        ], np.float32)
     
         H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
         warped = cv2.warpPerspective(image, H_mat, (A4_w, A4_h))
     
-        # ---------- crop & enhance ----------
         cropped = warped[
-            trim_border:A4_h - trim_border,
-            trim_border:A4_w - trim_border
+            trim_border:A4_h-trim_border,
+            trim_border:A4_w-trim_border
         ]
+    
         cropped = enhance_final_preserve_color(cropped)
     
-        # ---------- rotate back ----------
+        # rotate back
         if need_rotate:
             cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    
-            # restore global image เพื่อไม่ให้เอกสารถัดไปพัง
             image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
             H, W = image.shape[:2]
     
-        # ---------- save ----------
         if show_preview:
-            st.subheader(f"ผลลัพธ์หน้า {i+1}")
-            st.image(
-                cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
-                caption=f"Document {i+1}",
-                use_column_width=True
-            )
+            st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB),
+                     caption=f"Document {i+1}",
+                     use_column_width=True)
     
         output_images.append(cropped)
+
 
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
