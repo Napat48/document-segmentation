@@ -71,10 +71,12 @@ uploaded_list = st.file_uploader(
 
 if uploaded_list:
 
-    model = YOLO("modelv2.pt")   # ⭐ โหลด YOLO แค่ครั้งเดียว
+    model = YOLO("modelv2.pt")
     show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
 
-    for uploaded in uploaded_list :
+    all_output_images = []   # ⭐ รวมทุกภาพไว้ที่นี่
+
+    for uploaded in uploaded_list:
 
         st.write(f"🔍 ประมวลผลไฟล์: {uploaded.name}")
 
@@ -84,9 +86,8 @@ if uploaded_list:
 
         # Predict segmentation
         res = model.predict(image, conf=0.5)[0]
-
         if res.masks is None:
-            st.error(f"❌ ไม่พบเอกสารในภาพ {uploaded.name}")
+            st.warning(f"⚠️ ไม่พบเอกสารในภาพ {uploaded.name}")
             continue
 
         masks = res.masks.data.cpu().numpy()
@@ -108,7 +109,7 @@ if uploaded_list:
         contours = [c for c in contours if cv2.contourArea(c) > min_area]
 
         if len(contours) == 0:
-            st.error(f"❌ ไม่พบเอกสารในภาพ {uploaded.name}")
+            st.warning(f"⚠️ ไม่พบเอกสารในภาพ {uploaded.name}")
             continue
 
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
@@ -134,8 +135,7 @@ if uploaded_list:
         A4_w, A4_h = 2480, 3508
         trim_border = 50
 
-        output_images = []
-
+        # loop ของเอกสารแต่ละใบ
         for i, c in enumerate(contours):
 
             peri = cv2.arcLength(c, True)
@@ -152,8 +152,8 @@ if uploaded_list:
             dst = np.array([
                 [0,0],
                 [A4_w-1,0],
-                [A4_w-1,A4_h-1],
-                [0,A4_h-1]
+                [A4_w-1, A4_h-1],
+                [0, A4_h-1]
             ], np.float32)
 
             H_mat, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
@@ -169,28 +169,27 @@ if uploaded_list:
                 st.subheader(f"{uploaded.name} – หน้า {i+1}")
                 st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB), use_column_width=True)
 
-            output_images.append(cropped)
+            # ⭐ รวมทั้งหมด
+            all_output_images.append(cropped)
 
-        # ⭐ สร้าง PDF แยกไฟล์ตามชื่อเดิม
-        pdf_name = uploaded.name.replace(".jpg","").replace(".jpeg","").replace(".png","") + ".pdf"
-
+    # ========== ⭐ รวม PDF เดียว ==========
+    if len(all_output_images) > 0:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
 
             image_paths = []
-
-            for idx, img in enumerate(output_images):
-                temp_path = f"/tmp/page_{idx}.jpg"
+            for idx, img in enumerate(all_output_images):
+                temp_path = f"/tmp/pdf_page_{idx}.jpg"
                 cv2.imwrite(temp_path, img)
                 image_paths.append(temp_path)
 
             tmp_pdf.write(img2pdf.convert(image_paths))
 
-        st.success(f"✔ PDF สำเร็จสำหรับไฟล์ {uploaded.name}")
+        st.success(f"✔ รวมเอกสารทั้งหมดเป็น PDF เดียวเรียบร้อย!")
 
         with open(tmp_pdf.name, "rb") as f:
             st.download_button(
-                label=f"📥 ดาวน์โหลด {pdf_name}",
+                label="📥 ดาวน์โหลด PDF รวมทั้งหมด",
                 data=f.read(),
-                file_name=pdf_name,
+                file_name="all_documents_merged.pdf",
                 mime="application/pdf"
             )
