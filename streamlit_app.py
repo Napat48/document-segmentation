@@ -74,7 +74,7 @@ if uploaded_list:
     model = YOLO("modelv2.pt")
     show_preview = st.checkbox("แสดงตัวอย่างผลลัพธ์ (Preview)", value=True)
 
-    all_output_images = []   # ⭐ รวมทุกภาพไว้ที่นี่
+    all_output_images = []   
 
     for uploaded in uploaded_list:
 
@@ -169,10 +169,9 @@ if uploaded_list:
                 st.subheader(f"{uploaded.name} – หน้า {i+1}")
                 st.image(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB), use_column_width=True)
 
-            # ⭐ รวมทั้งหมด
             all_output_images.append(cropped)
 
-    # ========== ⭐ รวม PDF เดียว ==========
+    # รวม PDF 
     if len(all_output_images) > 0:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
 
