@@ -20,15 +20,34 @@ def remove_shadow_preserve_color(img):
     final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
     return final
 
+# def remove_shadow_white_color(img):
+#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     result = cv2.adaptiveThreshold(
+#         gray, 255,
+#         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+#         cv2.THRESH_BINARY,
+#         51, 10
+#     )
+#     return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+
 def remove_shadow_white_color(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    result = cv2.adaptiveThreshold(
-        gray, 255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        51, 10
+
+    # ทำให้พื้นหลังเรียบก่อน threshold
+    gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # ใช้ OTSU threshold (ดีกว่า adaptive สำหรับตัวอักษรหนา)
+    _, th = cv2.threshold(
+        gray_blur, 0, 255,
+        cv2.THRESH_BINARY + cv2.THRESH_OTSU
     )
-    return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+
+    # ปิดรูตัวอักษร (เช่น บิสกิต จะไม่กลวง)
+    kernel = np.ones((3, 3), np.uint8)
+    th = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+    return cv2.cvtColor(th, cv2.COLOR_GRAY2BGR)
+
 
 def safe_sharpen(img):
     kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
