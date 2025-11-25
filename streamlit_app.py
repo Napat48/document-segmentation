@@ -183,7 +183,7 @@ if uploaded_list:
 
             tmp_pdf.write(img2pdf.convert(image_paths))
 
-        st.success(f"✔ รวมเอกสารทั้งหมดเป็น PDF เดียวเรียบร้อย!")
+        st.success("✔ รวมเอกสารทั้งหมดเป็น PDF เดียวเรียบร้อย!")
 
         with open(tmp_pdf.name, "rb") as f:
             st.download_button(
