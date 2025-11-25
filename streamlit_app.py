@@ -20,23 +20,15 @@ def remove_shadow_preserve_color(img):
     final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
     return final
 
-def sauvola_threshold(gray, window=51, k=0.2):
-    mean = cv2.blur(gray.astype(np.float32), (window, window))
-    sqmean = cv2.blur((gray*gray).astype(np.float32), (window, window))
-    var = sqmean - mean*mean
-    std = np.sqrt(np.maximum(var, 0))
-
-    R = 128  
-    thresh = mean * (1 + k * ((std / R) - 1))
-    return (gray > thresh).astype(np.uint8) * 255
-
 def remove_shadow_white_color(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    bw = sauvola_threshold(gray, window=59, k=0.25)
-    bw = cv2.medianBlur(bw, 3)  
-    return cv2.cvtColor(bw, cv2.COLOR_GRAY2BGR)
-
-
+    result = cv2.adaptiveThreshold(
+        gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        51, 10
+    )
+    return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
 def safe_sharpen(img):
     kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
