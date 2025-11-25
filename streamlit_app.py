@@ -66,11 +66,11 @@ st.write("สแกนเอกสารหลายแผ่นได้อย�
 uploaded_list = st.file_uploader("อัปโหลดภาพเอกสาร (หลายไฟล์ได้)", type=["jpg","jpeg","png"],accept_multiple_files=True)
 
 if uploaded_list:
-
-    for uploaded in uploaded_list :
-
-        model = YOLO("modelv2.pt")
     
+    model = YOLO("modelv2.pt")
+    
+    for uploaded in uploaded_list :
+        
         file_bytes = np.frombuffer(uploaded.read(), np.uint8)
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         H, W = image.shape[:2]
