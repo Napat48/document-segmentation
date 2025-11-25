@@ -63,7 +63,7 @@ def enhance_final_preserve_color(img):
 st.title("📄 Multiple Document Scanner")
 st.write("สแกนเอกสารหลายแผ่นได้อย่างรวดเร็วและแม่นยำ — เสร็จในคลิกเดียว")
 
-uploaded_list = st.file_uploader("อัปโหลดภาพเอกสาร (หลายไฟล์ได้)"", type=["jpg","jpeg","png"],accept_multiple_files=True)
+uploaded_list = st.file_uploader("อัปโหลดภาพเอกสาร (หลายไฟล์ได้)", type=["jpg","jpeg","png"],accept_multiple_files=True)
 
 if uploaded_list:
 
