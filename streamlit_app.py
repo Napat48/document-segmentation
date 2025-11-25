@@ -20,39 +20,15 @@ def remove_shadow_preserve_color(img):
     final = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
     return final
 
-# def remove_shadow_white_color(img):
-#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     result = cv2.adaptiveThreshold(
-#         gray, 255,
-#         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-#         cv2.THRESH_BINARY,
-#         51, 10
-#     )
-#     return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-
 def remove_shadow_white_color(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # --- 1) Adaptive (ดึงลายละเอียด)
-    adp = cv2.adaptiveThreshold(
+    result = cv2.adaptiveThreshold(
         gray, 255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY,
         51, 10
     )
-
-    # --- 2) Otsu (ดึงตัวอักษรหนาให้ทึบ)
-    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # --- 3) รวมผล โดยใช้ส่วนที่ Otsu ดำกว่า adaptive
-    mix = np.minimum(adp, otsu)
-
-    # --- 4) เติมรูด้านในของตัวหนังสือ (stroke fill)
-    kernel = np.ones((5, 5), np.uint8)
-    filled = cv2.morphologyEx(mix, cv2.MORPH_CLOSE, kernel)
-
-    return cv2.cvtColor(filled, cv2.COLOR_GRAY2BGR)
-
+    return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
 
 def safe_sharpen(img):
